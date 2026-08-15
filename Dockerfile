@@ -7,6 +7,8 @@ RUN apt-get update && apt-get install -y \
     libssl-dev \
     libsqlite3-dev \
     ca-certificates \
+    perl \
+    make \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
