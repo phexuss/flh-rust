@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  flh-rust:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: flh-rust-bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs

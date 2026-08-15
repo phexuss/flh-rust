@@ -1,0 +1,22 @@
+[package]
+name = "flh-rust"
+version = "0.1.0"
+edition = "2021"
+authors = ["phexuss"]
+description = "Telegram Bot for monitoring Freelancehunt projects with AI features rewritten in Rust"
+
+[dependencies]
+tokio = { version = "1.43", features = ["full"] }
+teloxide = { version = "0.13", features = ["macros"] }
+reqwest = { version = "0.12", features = ["json", "cookies"] }
+sqlx = { version = "0.8", features = ["runtime-tokio", "sqlite"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+dotenvy = "0.15"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+tracing-appender = "0.2"
+scraper = "0.22"
+chrono = { version = "0.4", features = ["serde"] }
+anyhow = "1.0"
+url = "2.5"
