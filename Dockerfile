@@ -1,5 +1,5 @@
 # Stage 1: Builder
-FROM rust:1.80-slim as builder
+FROM rust:1-slim as builder
 
 RUN apt-get update && apt-get install -y \
     build-essential \
