@@ -5,7 +5,7 @@ use crate::services::FreelancehuntClient;
 use anyhow::Result;
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::time::interval;
+use tokio::time::{interval, sleep};
 use tracing::{error, info};
 
 pub fn spawn_parser_job(
@@ -16,15 +16,16 @@ pub fn spawn_parser_job(
 ) {
     tokio::spawn(async move {
         let interval_mins = config.parse_interval_minutes.max(1);
-        info!("Starting project parser job (interval: {} mins)...", interval_mins);
+        info!("Starting project parser job (first check in 10s, interval: {} mins)...", interval_mins);
+
+        // Initial delay of 10s before first run
+        sleep(Duration::from_secs(10)).await;
 
         let mut timer = interval(Duration::from_secs(interval_mins * 60));
-        // Skip first tick to allow bot startup
+        // Reset timer tick after initial sleep
         timer.tick().await;
 
         loop {
-            timer.tick().await;
-
             info!("Running periodic project parse...");
             match parse_new_projects(&config, &fh_client, &storage, &notifier).await {
                 Ok((sent, total)) => {
@@ -34,6 +35,9 @@ pub fn spawn_parser_job(
                     error!("Error during periodic project parse: {}", e);
                 }
             }
+
+            // Wait for next interval tick
+            timer.tick().await;
         }
     });
 }
