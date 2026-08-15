@@ -87,8 +87,8 @@ impl Notifier {
         text.push_str(get_text(lang, "notify_desc"));
 
         let mut desc = project.description.trim().to_string();
-        if desc.len() > 800 {
-            desc.truncate(800);
+        if desc.chars().count() > 500 {
+            desc = desc.chars().take(500).collect();
             desc.push_str("...");
         }
 
