@@ -6,7 +6,7 @@ mod jobs;
 mod models;
 mod services;
 
-use bot::{handle_callback, handle_command, handle_input, Command, DialogueState, Notifier};
+use bot::{handle_callback, handle_command, handle_input, BotDialogue, Command, DialogueState, Notifier};
 use config::Config;
 use db::Storage;
 use i18n::get_text;
@@ -14,7 +14,7 @@ use jobs::{spawn_cleanup_job, spawn_parser_job};
 use services::{AiService, FreelancehuntClient};
 use std::sync::Arc;
 use std::time::Instant;
-use teloxide::dispatching::dialogue::InMemStorage;
+use teloxide::dispatching::dialogue::{enter, InMemStorage};
 use teloxide::prelude::*;
 use teloxide::types::ParseMode;
 use tracing::{error, info};
@@ -101,24 +101,27 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }),
         )
         .branch(
-            Update::filter_callback_query().endpoint(
-                move |b: Bot, q: CallbackQuery, d: Dialogue<DialogueState, InMemStorage<DialogueState>>| {
-                    let cfg = config_cb.clone();
-                    let fh = fh_cb.clone();
-                    let ai = ai_cb.clone();
-                    async move { handle_callback(b, q, d, cfg, fh, ai).await }
-                },
-            ),
-        )
-        .branch(
-            Update::filter_message().endpoint(
-                move |b: Bot, m: Message, d: Dialogue<DialogueState, InMemStorage<DialogueState>>| {
-                    let cfg = config_inp.clone();
-                    let fh = fh_inp.clone();
-                    let ai = ai_inp.clone();
-                    async move { handle_input(b, m, d, cfg, fh, ai).await }
-                },
-            ),
+            enter::<Update, InMemStorage<DialogueState>, DialogueState, _>()
+                .branch(
+                    Update::filter_callback_query().endpoint(
+                        move |b: Bot, q: CallbackQuery, d: BotDialogue| {
+                            let cfg = config_cb.clone();
+                            let fh = fh_cb.clone();
+                            let ai = ai_cb.clone();
+                            async move { handle_callback(b, q, d, cfg, fh, ai).await }
+                        },
+                    ),
+                )
+                .branch(
+                    Update::filter_message().endpoint(
+                        move |b: Bot, m: Message, d: BotDialogue| {
+                            let cfg = config_inp.clone();
+                            let fh = fh_inp.clone();
+                            let ai = ai_inp.clone();
+                            async move { handle_input(b, m, d, cfg, fh, ai).await }
+                        },
+                    ),
+                ),
         );
 
     info!("Bot is running and polling for updates...");

@@ -98,29 +98,39 @@ impl AiService {
             return Err(anyhow!("GEMINI_API_KEY is not set"));
         }
 
-        let url = format!(
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={}",
-            key
-        );
+        let models = ["gemini-2.0-flash", "gemini-1.5-flash"];
+        let mut last_err = String::new();
 
-        let body = json!({
-            "contents": [{
-                "parts": [{ "text": prompt }]
-            }]
-        });
+        for model in models {
+            let url = format!(
+                "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent?key={}",
+                model, key
+            );
 
-        let resp = self.client.post(&url).json(&body).send().await?;
-        if !resp.status().is_success() {
-            let err_text = resp.text().await.unwrap_or_default();
-            return Err(anyhow!("Gemini API error: {}", err_text));
+            let body = json!({
+                "contents": [{
+                    "parts": [{ "text": prompt }]
+                }]
+            });
+
+            match self.client.post(&url).json(&body).send().await {
+                Ok(resp) if resp.status().is_success() => {
+                    if let Ok(json) = resp.json::<Value>().await {
+                        if let Some(text) = json["candidates"][0]["content"]["parts"][0]["text"].as_str() {
+                            return Ok(text.trim().to_string());
+                        }
+                    }
+                }
+                Ok(resp) => {
+                    last_err = resp.text().await.unwrap_or_default();
+                }
+                Err(e) => {
+                    last_err = e.to_string();
+                }
+            }
         }
 
-        let json: Value = resp.json().await?;
-        let text = json["candidates"][0]["content"]["parts"][0]["text"]
-            .as_str()
-            .ok_or_else(|| anyhow!("Invalid response structure from Gemini API"))?;
-
-        Ok(text.trim().to_string())
+        Err(anyhow!("Gemini API error: {}", last_err))
     }
 
     async fn call_groq(&self, prompt: &str) -> Result<String> {

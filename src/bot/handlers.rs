@@ -123,9 +123,13 @@ pub async fn handle_callback(
                         let tpl = get_text(lang, "analyze_title");
                         let text = tpl.replace("{name}", &proj.name).replace("{analysis}", &analysis);
 
-                        bot.edit_message_text(message.chat().id, loading_msg.id, text)
+                        if let Err(e) = bot.edit_message_text(message.chat().id, loading_msg.id, &text)
                             .parse_mode(ParseMode::Html)
-                            .await?;
+                            .await
+                        {
+                            error!("Failed HTML message edit for analysis: {}, retrying as plain text", e);
+                            let _ = bot.edit_message_text(message.chat().id, loading_msg.id, &text).await;
+                        }
                     }
                     Err(e) => {
                         error!("AI analysis error for #{}: {}", pid, e);
@@ -245,10 +249,16 @@ pub async fn handle_input(
                                 )],
                             ]);
 
-                            bot.edit_message_text(msg.chat.id, loading_msg.id, resp_text)
+                            if let Err(e) = bot.edit_message_text(msg.chat.id, loading_msg.id, &resp_text)
                                 .parse_mode(ParseMode::Html)
-                                .reply_markup(keyboard)
-                                .await?;
+                                .reply_markup(keyboard.clone())
+                                .await
+                            {
+                                error!("Failed HTML edit for proposal draft: {}, retrying as plain text", e);
+                                let _ = bot.edit_message_text(msg.chat.id, loading_msg.id, &resp_text)
+                                    .reply_markup(keyboard)
+                                    .await;
+                            }
 
                             dialogue.update(DialogueState::DraftReady {
                                 project_id,
